@@ -71,6 +71,8 @@ LOGO_TEMPO_PATH = os.getenv(
     "METRONOME_LOGO",
     r"\\192.168.10.100\02 - affaires\02.2 - SYNTHESE\ZZ - METRONOME\Content\Logo TEMPO.png",
 )
+USERS_PATH = os.getenv("METRONOME_USERS", "Users.csv")
+PACKAGES_PATH = os.getenv("METRONOME_PACKAGES", "Packages.csv")
 LOGO_RYTHME_PATH = os.getenv(
     "METRONOME_LOGO_RYTHME",
     r"\\192.168.10.100\02 - affaires\02.2 - SYNTHESE\ZZ - METRONOME\Content\Rythme.png",
@@ -150,6 +152,8 @@ _cache = {
     "meetings": (None, None),
     "companies": (None, None),
     "projects": (None, None),
+    "users": (None, None),
+    "packages": (None, None),
     "documents": (None, None),
 }
 
@@ -218,6 +222,26 @@ def get_projects() -> pd.DataFrame:
     return df
 
 
+def get_users() -> pd.DataFrame:
+    m = _mtime(USERS_PATH)
+    old_m, df = _cache["users"]
+    if df is None or m != old_m:
+        _require_csv(USERS_PATH, "Users", "METRONOME_USERS")
+        df = _load_csv(USERS_PATH)
+        _cache["users"] = (m, df)
+    return df
+
+
+def get_packages() -> pd.DataFrame:
+    m = _mtime(PACKAGES_PATH)
+    old_m, df = _cache["packages"]
+    if df is None or m != old_m:
+        _require_csv(PACKAGES_PATH, "Packages", "METRONOME_PACKAGES")
+        df = _load_csv(PACKAGES_PATH)
+        _cache["packages"] = (m, df)
+    return df
+
+
 def get_documents() -> pd.DataFrame:
     m = _mtime(DOCUMENTS_PATH)
     old_m, df = _cache["documents"]
@@ -242,6 +266,15 @@ def _escape(s) -> str:
         .replace('"', "&quot;")
         .replace("'", "&#039;")
     )
+
+
+def _find_col(df: pd.DataFrame, candidates: List[List[str]]) -> Optional[str]:
+    for tokens in candidates:
+        for col in df.columns:
+            col_lower = str(col).lower()
+            if all(token in col_lower for token in tokens):
+                return col
+    return None
 
 
 def _series(df: pd.DataFrame, col: str, default) -> pd.Series:
@@ -663,6 +696,59 @@ def compute_presence_lists(mrow: pd.Series) -> Tuple[List[Dict], List[Dict]]:
 # -------------------------
 # KPI
 # -------------------------
+def packages_by_user(project_title: str) -> Dict[str, List[str]]:
+    packages = get_packages().copy()
+    if packages.empty:
+        return {}
+    project_col = _find_col(packages, [["project", "title"], ["project"], ["projects"]])
+    if project_col:
+        packages[project_col] = packages[project_col].fillna("").astype(str)
+        packages = packages.loc[packages[project_col].str.contains(project_title, case=False, na=False)].copy()
+    user_cols = [
+        _find_col(packages, [["managers", "package managers", "ids"]]),
+        _find_col(packages, [["managers", "project managers", "ids"]]),
+        _find_col(packages, [["managers", "ids"]]),
+    ]
+    user_cols = [c for c in user_cols if c]
+    lot_col = _find_col(packages, [["name", "text"], ["name", "with company"], ["name"]])
+    if not user_cols or not lot_col:
+        return {}
+    out: Dict[str, List[str]] = {}
+    for _, row in packages.iterrows():
+        lot_raw = str(row.get(lot_col, "")).strip()
+        if not lot_raw:
+            continue
+        manager_ids: List[str] = []
+        for col in user_cols:
+            manager_ids.extend(_parse_ids(row.get(col)))
+        for uid in set(mid for mid in manager_ids if mid):
+            out.setdefault(uid, []).append(lot_raw)
+    return out
+
+
+def package_manager_ids_for_project(project_title: str) -> List[str]:
+    packages = get_packages().copy()
+    if packages.empty:
+        return []
+    project_col = _find_col(packages, [["project", "title"], ["project"], ["projects"]])
+    if project_col:
+        packages[project_col] = packages[project_col].fillna("").astype(str)
+        packages = packages.loc[packages[project_col].str.contains(project_title, case=False, na=False)].copy()
+    manager_cols = [
+        _find_col(packages, [["managers", "package managers", "ids"]]),
+        _find_col(packages, [["managers", "project managers", "ids"]]),
+        _find_col(packages, [["managers", "ids"]]),
+    ]
+    manager_cols = [c for c in manager_cols if c]
+    if not manager_cols:
+        return []
+    ids: List[str] = []
+    for _, row in packages.iterrows():
+        for col in manager_cols:
+            ids.extend(_parse_ids(row.get(col)))
+    return sorted({i for i in ids if i})
+
+
 def kpis(mrow: pd.Series, edf: pd.DataFrame, ref_date: date) -> Dict[str, int]:
     tasks_count = _safe_int(mrow.get(M_COL_TASKS_COUNT))
     memos_count = _safe_int(mrow.get(M_COL_MEMOS_COUNT))
@@ -1200,6 +1286,46 @@ RESIZE_COLUMNS_JS = r"""
     startPct = parseFloat(current || '0');
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
+  });
+})();
+"""
+
+PRESENCE_RESIZE_JS = r"""
+(function(){
+  const table = document.querySelector('.presenceUsersTable');
+  if(!table) return;
+  const grips = table.querySelectorAll('.presenceGrip');
+  const cols = table.querySelectorAll('colgroup col');
+  if(!grips.length || !cols.length) return;
+  let active = null;
+  let startX = 0;
+  let startWidth = 0;
+  function onMove(e){
+    if(active === null) return;
+    const dx = e.clientX - startX;
+    const tableWidth = table.getBoundingClientRect().width || 1;
+    const col = cols[active];
+    const startPct = startWidth;
+    const deltaPct = (dx / tableWidth) * 100;
+    const next = Math.max(3, startPct + deltaPct);
+    col.style.width = `${next}%`;
+  }
+  function onUp(){
+    active = null;
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  }
+  grips.forEach(grip => {
+    grip.addEventListener('mousedown', (e) => {
+      const idx = parseInt(grip.dataset.col || '0', 10);
+      if(Number.isNaN(idx)) return;
+      active = idx;
+      startX = e.clientX;
+      const current = (cols[idx].style.width || '').replace('%','');
+      startWidth = parseFloat(current || '0');
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
   });
 })();
 """
@@ -2218,31 +2344,129 @@ def render_cr(
         img_col_pinned = detect_images_column(pinned_df)
 
     # -------------------------
-    # Presence table (no KPI block)
+    # Presence table (EIFFAGE cover config)
     # -------------------------
     kpi_table_html = ""
     reminders_kpi_html = ""
 
-    def render_presence_rows(items: List[Dict], label: str) -> str:
+    def render_presence_rows(items: List[Dict], lots_map: Dict[str, List[str]], company_map: Dict[str, Dict[str, str]]) -> str:
         if not items:
-            return f"<tr><td>{_escape(label)} (0)</td><td class='muted'>—</td></tr>"
+            return "<tr><td colspan='6' class='muted'>—</td></tr>"
         rows = []
         for it in items:
+            user_id = str(it.get("id", "")).strip()
+            company_id = str(it.get("company_id", "")).strip()
             name = _escape(it.get("name", ""))
-            logo = (it.get("logo", "") or "").strip()
-            logo_html = f"<img class='coLogo' src='{_escape(logo)}' alt='' loading='lazy' />" if logo.startswith("http") else ""
-            rows.append(f"<li class='presenceLine'>{logo_html}<span>{name}</span></li>")
-        return f"<tr><td>{_escape(label)} ({len(items)})</td><td><ul class='presenceList'>{''.join(rows)}</ul></td></tr>"
+            email = _escape((it.get("email", "") or "").lower())
+            company_info = company_map.get(company_id, {})
+            fallback_company = str(company_info.get("name", "")).strip()
+            raw_company_name = str(it.get("company_name", "")).strip() or fallback_company
+            company_name = raw_company_name.upper()
+            lot_list = lots_map.get(user_id, [])
+            if company_name == "TEMPO":
+                lot_list = ["SYNTHESE"]
+            if "@atelier-tempo.fr" in email.lower():
+                lot_list = ["SYNTHESE"]
+            lot_display = _escape(", ".join(lot_list)) if lot_list else "—"
+            company_logo = company_info.get("logo", "")
+            logo_html = (
+                f"<img class='coLogo' src='{_escape(company_logo)}' alt='' loading='lazy' />"
+                if company_logo and company_logo.startswith("http")
+                else ""
+            )
+            rows.append(
+                f"""
+            <tr>
+              <td><span class='presenceName'>{logo_html}{name}</span></td>
+              <td>{lot_display}</td>
+              <td>{email or "—"}</td>
+              <td class='presenceFlag editableCell' contenteditable='true'></td>
+              <td class='presenceFlag editableCell' contenteditable='true'></td>
+              <td class='presenceFlag editableCell' contenteditable='true'></td>
+            </tr>
+                """
+            )
+        return "".join(rows)
+
+    users_presence_rows = ""
+    try:
+        target_project = project
+        packages_map = packages_by_user(target_project)
+        manager_ids = package_manager_ids_for_project(target_project)
+        users_df = get_users().copy()
+        if not users_df.empty and manager_ids:
+            id_col = _find_col(users_df, [["row id"], ["id"]])
+            if id_col:
+                users_df[id_col] = users_df[id_col].astype(str).str.strip()
+                users_df = users_df.loc[users_df[id_col].isin(manager_ids)].copy()
+        company_map = companies_map_by_id()
+        if not users_df.empty:
+            id_col = _find_col(users_df, [["row id"], ["id"]])
+            name_col = _find_col(users_df, [["full", "name"], ["name"], ["nom"]])
+            first_col = _find_col(users_df, [["first"], ["prenom"]])
+            last_col = _find_col(users_df, [["last"], ["nom"]])
+            email_col = _find_col(users_df, [["mail"], ["email"]])
+            company_col = _find_col(users_df, [["company", "id"]])
+            company_name_col = _find_col(users_df, [["company", "name"], ["entreprise"], ["societe"], ["société"]])
+            items: List[Dict[str, str]] = []
+            for _, row in users_df.iterrows():
+                user_id = str(row.get(id_col, "")).strip() if id_col else ""
+                full_name = ""
+                if name_col:
+                    full_name = str(row.get(name_col, "")).strip()
+                if not full_name:
+                    first = str(row.get(first_col, "")).strip() if first_col else ""
+                    last = str(row.get(last_col, "")).strip() if last_col else ""
+                    full_name = " ".join([p for p in [first, last] if p]).strip()
+                if not full_name or not user_id:
+                    continue
+                email = str(row.get(email_col, "")).strip() if email_col else ""
+                company_id = str(row.get(company_col, "")).strip() if company_col else ""
+                company_name = str(row.get(company_name_col, "")).strip() if company_name_col else ""
+                items.append(
+                    {
+                        "id": user_id,
+                        "name": full_name,
+                        "email": email,
+                        "company_id": company_id,
+                        "company_name": company_name,
+                    }
+                )
+            items.sort(
+                key=lambda x: (
+                    ",".join(packages_map.get(str(x.get("id", "")).strip(), [])),
+                    (x.get("name", "").lower()),
+                )
+            )
+            users_presence_rows = render_presence_rows(items, packages_map, company_map)
+        else:
+            users_presence_rows = render_presence_rows([], {}, {})
+    except MissingDataError:
+        users_presence_rows = render_presence_rows([], {}, {})
 
     presence_html = f"""
       <div class="presenceWrap">
-        <table class="annexTable coverTable presenceTable">
+        <table class="annexTable coverTable presenceTable presenceUsersTable">
+          <colgroup>
+            <col style="width:60mm" />
+            <col style="width:28mm" />
+            <col style="width:70mm" />
+            <col style="width:8mm" />
+            <col style="width:8mm" />
+            <col style="width:8mm" />
+          </colgroup>
           <thead>
-            <tr><th>Type</th><th>Entreprises</th></tr>
+            <tr>
+              <th>Prénom et Nom <span class="presenceGrip" data-col="0"></span></th>
+              <th>Lot <span class="presenceGrip" data-col="1"></span></th>
+              <th>Mail <span class="presenceGrip" data-col="2"></span></th>
+              <th>C <span class="presenceGrip" data-col="3"></span></th>
+              <th>P <span class="presenceGrip" data-col="4"></span></th>
+              <th>D <span class="presenceGrip" data-col="5"></span></th>
+            </tr>
           </thead>
           <tbody>
-            {render_presence_rows(att, "Présentes")}
-            {render_presence_rows(miss, "Absentes / Excusées")}
+            {users_presence_rows}
           </tbody>
         </table>
       </div>
@@ -2921,6 +3145,21 @@ body.constraint-off-topScale .topPage{{transform:none!important}}
 .reportHeader .accent{{color:#ff0000;font-weight:900}}
 .presenceTable .presenceList{{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:6px}}
 .presenceTable .presenceLine{{display:flex;align-items:center;gap:8px;font-weight:700}}
+.presenceBlock{{margin:8mm 0 6mm 0;}}
+.presenceUsersTable th{{text-align:left}}
+.presenceUsersTable th:nth-child(4),
+.presenceUsersTable th:nth-child(5),
+.presenceUsersTable th:nth-child(6),
+.presenceUsersTable td:nth-child(4),
+.presenceUsersTable td:nth-child(5),
+.presenceUsersTable td:nth-child(6){{text-align:center}}
+.presenceUsersTable td{{vertical-align:middle}}
+.presenceUsersTable .presenceFlag{{min-height:18px}}
+.presenceName{{display:inline-flex;align-items:center;gap:6px}}
+.presenceUsersTable th{{position:relative;padding-right:18px}}
+.presenceGrip{{position:absolute;top:0;right:-6px;width:12px;height:100%;cursor:col-resize}}
+.presenceGrip::after{{content:"";position:absolute;top:3px;bottom:3px;left:5px;width:2px;background:#1d4ed8;border-radius:2px;opacity:1}}
+.presenceUsersTable th:hover .presenceGrip::after{{background:#0f172a}}
 .docFooter{{position:absolute;left:0;right:0;bottom:0;height:20mm;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3mm 10mm;border-top:2px solid var(--brand-red);background:#fff;overflow:hidden;width:100%;box-sizing:border-box}}
 .footLeft,.footCenter,.footRight{{position:absolute;z-index:2}}
 .footLeft{{left:0}}
@@ -2932,7 +3171,7 @@ body.constraint-off-topScale .topPage{{transform:none!important}}
 .footMark{{max-height:16px}}
 .footRythme{{max-height:28px;margin:6px auto 0 auto}}
 .footTempo{{max-height:28px;margin-left:auto}}
-@media print{{body{{padding:0}} .actions,.rangePanel,.constraintsPanel{{display:none!important}} .page{{width:210mm;min-height:297mm;margin:0;box-shadow:none;break-after:page;page-break-after:always;}} .page:last-child{{break-after:auto;page-break-after:auto;}}}}
+@media print{{body{{padding:0}} .actions,.rangePanel,.constraintsPanel{{display:none!important}} .page{{width:210mm;min-height:297mm;margin:0;box-shadow:none;break-after:page;page-break-after:always;}} .page:last-child{{break-after:auto;page-break-after:auto;}} .presenceGrip{{display:none!important}} .presenceUsersTable thead{{display:table-header-group}} .presenceUsersTable tr{{break-inside:avoid;page-break-inside:avoid}}}}
 
 {EDITOR_MEMO_MODAL_CSS}
 {QUALITY_MODAL_CSS}
@@ -3109,6 +3348,7 @@ body.constraint-off-topScale .topPage{{transform:none!important}}
 <script>{PRINT_OPTIMIZE_JS}</script>
 <script>{ROW_CONTROL_JS}</script>
 <script>{RESIZE_COLUMNS_JS}</script>
+<script>{PRESENCE_RESIZE_JS}</script>
 <script>{RESIZE_TOP_JS}</script>
 </body>
 </html>
