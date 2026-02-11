@@ -554,7 +554,7 @@ def parse_image_urls_any(v) -> List[str]:
 
 
 def _format_entry_text_html(v) -> str:
-    """Normalize text for tasks/memos and preserve bullet-like line breaks in HTML."""
+    """Normalize text for tasks/memos and preserve bullet/enumeration line breaks in HTML."""
     if v is None or (isinstance(v, float) and pd.isna(v)):
         return ""
     s = str(v)
@@ -563,12 +563,24 @@ def _format_entry_text_html(v) -> str:
     s = s.replace("\r\n", "\n").replace("\r", "\n")
     s = re.sub(r"[ \t]+", " ", s)
     s = re.sub(r"\n[ \t]+", "\n", s)
-    # bullets coming from various exports (including Word/Wingdings glyphs)
-    s = re.sub(r"\s*[•●◦▪‣◾◽◼◻·\uf0a7\u25aa\u25ab\u2022]\s*", r"\n▪ ", s)
-    # dash bullets often appear after punctuation with or without spaces (e.g. ".- Item" / ": -Item")
-    s = re.sub(r"([\.:;])\s*-\s*(?=[A-ZÉÈÊÀÂÎÔÙÛÇ0-9])", r"\1\n- ", s)
-    # dash bullets anywhere, but avoid numeric ranges/dates like 05-02
+
+    # Force newlines for markers explicitly requested
+    s = re.sub(r"(?<!\n)\s*(▪)\s*", r"\n\1 ", s)
+    s = re.sub(r"(?<!\n)\s*(\*\.)\s*", r"\n\1 ", s)
+    s = re.sub(r"(?<!\n)\s*(\*)\s+(?=\S)", r"\n\1 ", s)
+    s = re.sub(r"(?<!\n)\s*(---->|--->|-->|->)\s*", r"\n\1 ", s)
+
+    # Enumerations like "1." / "2/" when followed by content
+    s = re.sub(r"(?<!\n)(?<!\d)(\d+\.)\s*(?=\S)", r"\n\1 ", s)
+    s = re.sub(r"(?<!\n)(?<!\d)(\d+/)\s*(?=\S)", r"\n\1 ", s)
+
+    # Dash bullet variants (including ".- Item" / ": -Item")
+    s = re.sub(r"([\.:;])\s*-\s*(?=\S)", r"\1\n- ", s)
     s = re.sub(r"(?<!\d)\s*-\s*(?=[A-ZÉÈÊÀÂÎÔÙÛÇa-z0-9])", r"\n- ", s)
+
+    # Other bullet glyphs from copy/paste exports
+    s = re.sub(r"\s*[•●◦‣◾◽◼◻·\uf0a7\u25aa\u25ab\u2022]\s*", r"\n▪ ", s)
+
     s = re.sub(r"\n{3,}", "\n\n", s)
     return _escape(s.strip()).replace("\n", "<br>")
 
