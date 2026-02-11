@@ -71,8 +71,14 @@ LOGO_TEMPO_PATH = os.getenv(
     "METRONOME_LOGO",
     r"\\192.168.10.100\02 - affaires\02.2 - SYNTHESE\ZZ - METRONOME\Content\Logo TEMPO.png",
 )
-USERS_PATH = os.getenv("METRONOME_USERS", "Users.csv")
-PACKAGES_PATH = os.getenv("METRONOME_PACKAGES", "Packages.csv")
+USERS_PATH = os.getenv(
+    "METRONOME_USERS",
+    r"\\192.168.10.100\02 - affaires\02.2 - SYNTHESE\ZZ - METRONOME\Users.csv",
+)
+PACKAGES_PATH = os.getenv(
+    "METRONOME_PACKAGES",
+    r"\\192.168.10.100\02 - affaires\02.2 - SYNTHESE\ZZ - METRONOME\Packages.csv",
+)
 LOGO_RYTHME_PATH = os.getenv(
     "METRONOME_LOGO_RYTHME",
     r"\\192.168.10.100\02 - affaires\02.2 - SYNTHESE\ZZ - METRONOME\Content\Rythme.png",
