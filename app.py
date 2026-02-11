@@ -2674,26 +2674,27 @@ body.printPreviewMode .noPrintRow{{display:none!important}}
 .topPage{{transform:scale(var(--top-scale));transform-origin:top left}}
 @media print{{.topPage{{margin:0;}}}}
 .reportTables{{margin-top:0}}
-.coverHero{{position:relative;overflow:hidden;background:#fff;min-height:420px}}
-.coverHeroImg{{position:relative;min-height:430px;background-size:cover;background-position:center}}
-.coverHeroFade{{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,0));}}
-.coverHeroCurve{{position:absolute;left:50%;bottom:-95px;width:135%;height:190px;transform:translateX(-50%);background:#fff;border-radius:50% 50% 0 0 / 100% 100% 0 0;z-index:2}}
-.coverHeroLogoWrap{{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:4;background:#fff;padding:10px 18px;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,.12)}}
-.coverHeroLogo{{height:110px;width:auto;display:block}}
-.coverNoteCenter{{text-align:center;padding:10px 16px 12px 16px;font-weight:900;display:flex;flex-direction:column;align-items:center;gap:10px}}
-.coverAppNote{{margin-top:8px;font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:14px;line-height:1.45;color:#f97316;font-style:italic;font-weight:600;max-width:640px}}
-.coverUrl{{margin-top:6px;font-weight:900;color:#f97316;text-decoration:underline;text-underline-offset:3px}}
-.coverUrl::after{{content:" ↗";font-weight:900}}
-.coverProjectTitle{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:22px;line-height:1.2;color:#f59e0b;font-weight:700;letter-spacing:.5px;text-transform:uppercase}}
-.coverCrTitle{{margin-top:10px;font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:22px;line-height:1.2;color:#0f3a40;font-weight:700}}
-.coverCrMeta{{margin-top:8px;font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:22px;line-height:1.2;color:#0f3a40;font-weight:700}}
+.coverLayout{{display:flex;flex-direction:column;gap:20px;padding:16mm 6mm 0 6mm}}
+.coverBlock{{margin-bottom:6mm;}}
+.coverPresence{{margin-top:20px}}
+.coverHeader{{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}}
+.coverBrand{{display:flex;flex-direction:column;gap:10px;max-width:70%}}
+.coverSquare{{display:flex;align-items:flex-start;justify-content:flex-end}}
+.coverLogo{{height:78px;width:auto;display:block}}
+.coverSquareLogo{{height:92px;width:auto;display:block}}
+.coverFooterMark{{height:16px;width:auto;display:block}}
+.coverMeetingLine{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:18px;font-weight:700;color:#111}}
+.coverDocRef{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:18px;font-weight:700;color:#111}}
+.coverTitleBlock{{text-align:right;font-weight:900;display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-top:22px;width:100%}}
+.coverTitle{{font-size:22px;font-weight:900;color:#111;letter-spacing:.4px}}
+.coverSubtitle{{font-size:22px;font-weight:900;color:#111;letter-spacing:.4px}}
 .editInline{{display:inline-block;min-width:40px;padding:0 4px;border-bottom:2px dashed #cbd5e1;outline:none}}
 @media print{{.editInline{{border-bottom:none}}}}
 .nextMeetingBox{{margin:18px auto 0 auto;max-width:78%;border:2px solid #111;padding:12px 10px;font-weight:1000}}
 .nextMeetingLine1{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:18px}}
-.nextMeetingLine2{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:18px;color:#ef4444;margin-top:5px}}
+.nextMeetingLine2{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:18px;color:var(--brand-red);margin-top:5px}}
 .nextMeetingLine3{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:18px;color:#111;margin-top:4px;outline:none}}
-@media print{{.coverHeroImg{{min-height:390px}} .coverProjectTitle{{font-size:44px}} .coverCrTitle{{font-size:33px}} .coverCrMeta{{font-size:36px}} .nextMeetingLine1{{font-size:18px}} .nextMeetingLine2{{font-size:32px}} .nextMeetingLine3{{font-size:27px}}}}
+@media print{{.coverTitle{{font-size:30px}} .coverSubtitle{{font-size:30px}} .coverMeetingLine{{font-size:20px}} .coverDocRef{{font-size:20px}}}}
 
 /* PROJECT BANNER */
 .banner{{
@@ -2920,17 +2921,15 @@ body.constraint-off-topScale .topPage{{transform:none!important}}
 .reportHeader .accent{{color:#ff0000;font-weight:900}}
 .presenceTable .presenceList{{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:6px}}
 .presenceTable .presenceLine{{display:flex;align-items:center;gap:8px;font-weight:700}}
-.docFooter{{position:absolute;left:0;right:0;bottom:0;height:24mm;display:grid;grid-template-columns:120px 1fr 120px;align-items:center;gap:10px;padding:3mm 10mm;border-top:1px solid #dbe5f0;background:#fff;overflow:hidden;width:100%;box-sizing:border-box}}
-.docFooter::before{{content:"";position:absolute;left:0;bottom:0;width:170px;height:42px;background:#123f45;clip-path:polygon(0 100%,100% 100%,0 0)}}
-.docFooter::after{{content:"";position:absolute;right:0;bottom:0;width:260px;height:70px;background:#123f45;clip-path:polygon(100% 0,100% 100%,0 100%)}}
-.footLeft,.footCenter,.footRight{{position:relative;z-index:2}}
-.footLeft{{justify-self:start}}
-.footCenter{{text-align:center;justify-self:center}}
-.footRight{{justify-self:end;width:120px;display:flex;justify-content:flex-end}}
-.pageNum{{font-family:'Arial Nova Cond Light','Arial Narrow',Arial,sans-serif;font-size:13px;font-weight:700;color:rgba(255,255,255,.82);line-height:1;letter-spacing:.2px;padding-right:14px;padding-bottom:6px}}
+.docFooter{{position:absolute;left:0;right:0;bottom:0;height:20mm;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3mm 10mm;border-top:2px solid var(--brand-red);background:#fff;overflow:hidden;width:100%;box-sizing:border-box}}
+.footLeft,.footCenter,.footRight{{position:absolute;z-index:2}}
+.footLeft{{left:0}}
+.footCenter{{left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:11px;font-weight:700;color:#111}}
+.footRight{{right:10mm;width:120px;display:flex;justify-content:flex-end}}
+.pageNum{{font-family:'Arial Nova Cond Light','Arial Narrow',Arial,sans-serif;font-size:10px;font-weight:700;color:#111;line-height:1;letter-spacing:.2px}}
 .tempoLegal{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:10px;line-height:1.3;color:#6b7280;font-weight:600}}
 .footImg{{display:block;max-height:32px;width:auto}}
-.footMark{{max-height:48px}}
+.footMark{{max-height:16px}}
 .footRythme{{max-height:28px;margin:6px auto 0 auto}}
 .footTempo{{max-height:28px;margin-left:auto}}
 @media print{{body{{padding:0}} .actions,.rangePanel,.constraintsPanel{{display:none!important}} .page{{width:210mm;min-height:297mm;margin:0;box-shadow:none;break-after:page;page-break-after:always;}} .page:last-child{{break-after:auto;page-break-after:auto;}}}}
@@ -2941,54 +2940,33 @@ body.constraint-off-topScale .topPage{{transform:none!important}}
 """
 
     # Banner / cover HTML
-    bg_style = (
-        f"background-image:url('{_escape(proj_img)}');"
-        if proj_img.startswith("http")
-        else "background:linear-gradient(90deg,#cfe8ff,#ffffff);"
-    )
-
-    tempo_logo = _logo_data_url(LOGO_TEMPO_PATH)
-    logo_rythme = _logo_data_url(LOGO_RYTHME_PATH)
-    logo_tmark = _logo_data_url(LOGO_EIFFAGE_SQUARE_90_PATH) or _logo_data_url(LOGO_T_MARK_PATH)
+    logo_eiffage = _logo_data_url(LOGO_EIFFAGE_PATH)
+    logo_eiffage_square = _logo_data_url(LOGO_EIFFAGE_SQUARE_PATH)
+    logo_eiffage_square_90 = _logo_data_url(LOGO_EIFFAGE_SQUARE_90_PATH)
     cover_html = ""
 
-    next_meeting_date = (meet_date or ref_date) + timedelta(days=7)
-    next_meeting_date_txt = next_meeting_date.strftime("%d/%m/%Y")
     cr_date_txt = (meet_date or ref_date).strftime("%d/%m/%Y")
 
-    cover_hero_html = f"""
-      <div class='coverHero'>
-        <div class='coverHeroImg' style="{bg_style}">
-          <div class='coverHeroLogoWrap'>{("<img class='coverHeroLogo' src='" + (_logo_data_url(LOGO_EIFFAGE_SQUARE_PATH) or tempo_logo) + "' alt='EIFFAGE' />") if (_logo_data_url(LOGO_EIFFAGE_SQUARE_PATH) or tempo_logo) else ""}</div>
-          <div class='coverHeroFade'></div>
-        </div>
-        <div class='coverHeroCurve'></div>
-      </div>
-    """
-
-    cover_note_html = f"""
-      <div class='coverNoteCenter'>
-        <div class='coverProjectTitle' contenteditable='true'>{_escape(project)}</div>
-        <div class='coverCrTitle' contenteditable='true'>CR REUNION DE SYNTHESE TECHNIQUE</div>
-        <div class='coverCrMeta'>
-          N°<span contenteditable='true' class='editInline' data-sync='cr-number'>{_escape(cr_number_default)}</span>
-          du <strong>{_escape(cr_date_txt)}</strong>
-        </div>
-        <div class='nextMeetingBox'>
-          <div class='nextMeetingLine1'>La prochaine réunion de synthèse est fixée au</div>
-          <div class='nextMeetingLine2'>
-            <span contenteditable='true' class='editInline'>{_escape(next_meeting_date_txt)}</span>
-            à
-            <span contenteditable='true' class='editInline'>14h00</span>
+    document_ref_default = f"{project}_CR_{cr_date_txt.replace('/', '')}"
+    cover_html = f"""
+      <div class='coverLayout'>
+        <div class='coverHeader'>
+          <div class='coverBrand'>
+            {("<img class='coverLogo' src='" + logo_eiffage + "' alt='EIFFAGE' />") if logo_eiffage else ""}
+            <div class='coverMeetingLine'>
+              Réunion <span contenteditable='true' class='editInline' data-sync='cr-number'>{_escape(cr_number_default)}</span>
+              du <strong>{_escape(cr_date_txt)}</strong>
+            </div>
+            <div class='coverDocRef' contenteditable='true' data-sync='doc-ref'>{_escape(document_ref_default)}</div>
           </div>
-          <div contenteditable='true' class='nextMeetingLine3'>BASE VIE — adresse à compléter</div>
+          <div class='coverSquare'>
+            {("<img class='coverSquareLogo' src='" + logo_eiffage_square + "' alt='EIFFAGE' />") if logo_eiffage_square else ""}
+          </div>
         </div>
-        <div class='coverAppNote'>
-          Téléchargez gratuitement l’application de gestion de projet METRONOME. L’application développée par EIFFAGE
-          dédiée à la gestion de projet. Celle-ci vous permettra de retrouver l’intégralité des réunions de synthèse, comptes rendu,
-          planning et suivi des tâches depuis votre smartphone ou votre ordinateur.
+        <div class='coverTitleBlock'>
+          <div class='coverTitle' contenteditable='true'>- Compte Rendu -</div>
+          <div class='coverSubtitle' contenteditable='true'>{_escape(project)}</div>
         </div>
-        <a class='coverUrl' href='https://app.atelier-tempo.fr' target='_blank' rel='noopener'>app.atelier-tempo.fr</a>
       </div>
     """
 
@@ -2998,12 +2976,7 @@ body.constraint-off-topScale .topPage{{transform:none!important}}
       </div>
     """
 
-    top_html = f"""
-      <div class="topPage">
-        {cover_hero_html}
-        {cover_note_html}
-      </div>
-    """
+    top_html = ""
     annexes_html = ""
     try:
         docs = get_documents().copy()
@@ -3076,8 +3049,8 @@ body.constraint-off-topScale .topPage{{transform:none!important}}
         {top_html}
       </div>
       <div class="docFooter">
-        <div class="footLeft">{"<img class='footImg footMark' src='" + logo_tmark + "' alt='' />" if logo_tmark else ""}</div>
-        <div class="footCenter"><div style="font-family:'Arial Nova Cond Light','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:700;color:#111">EIFFAGE</div><div class="tempoLegal">Direction de projet synthèse — diffusion interne</div>{("<img class='footImg footRythme' src='" + logo_rythme + "' alt='' />") if logo_rythme else ""}</div>
+        <div class="footLeft"></div>
+        <div class="footCenter">{("<img class='coverFooterMark' src='" + logo_eiffage_square_90 + "' alt='EIFFAGE' />") if logo_eiffage_square_90 else ""}</div>
         <div class="footRight"><span class="pageNum"></span></div>
       </div>
     </section>
@@ -3096,8 +3069,8 @@ body.constraint-off-topScale .topPage{{transform:none!important}}
           </div>
         </div>
         <div class="docFooter">
-          <div class="footLeft">{"<img class='footImg footMark' src='" + logo_tmark + "' alt='' />" if logo_tmark else ""}</div>
-          <div class="footCenter"><div style="font-family:'Arial Nova Cond Light','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:700;color:#111">EIFFAGE</div><div class="tempoLegal">Direction de projet synthèse — diffusion interne</div>{("<img class='footImg footRythme' src='" + logo_rythme + "' alt='' />") if logo_rythme else ""}</div>
+          <div class="footLeft"></div>
+          <div class="footCenter">{("<img class='coverFooterMark' src='" + logo_eiffage_square_90 + "' alt='EIFFAGE' />") if logo_eiffage_square_90 else ""}</div>
           <div class="footRight"><span class="pageNum"></span></div>
         </div>
       </section>
@@ -3113,8 +3086,8 @@ body.constraint-off-topScale .topPage{{transform:none!important}}
         </div>
       </div>
       <div class="docFooter">
-        <div class="footLeft">{"<img class='footImg footMark' src='" + logo_tmark + "' alt='' />" if logo_tmark else ""}</div>
-        <div class="footCenter"><div style="font-family:'Arial Nova Cond Light','Arial Narrow',Arial,sans-serif;font-size:12px;font-weight:700;color:#111">EIFFAGE</div><div class="tempoLegal">Direction de projet synthèse — diffusion interne</div>{("<img class='footImg footRythme' src='" + logo_rythme + "' alt='' />") if logo_rythme else ""}</div>
+        <div class="footLeft"></div>
+        <div class="footCenter">{("<img class='coverFooterMark' src='" + logo_eiffage_square_90 + "' alt='EIFFAGE' />") if logo_eiffage_square_90 else ""}</div>
         <div class="footRight"><span class="pageNum"></span></div>
       </div>
     </section>
