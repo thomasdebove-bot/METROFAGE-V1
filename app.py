@@ -561,22 +561,24 @@ def _format_entry_text_html(v) -> str:
     if not s.strip() or s.strip().lower() == "nan":
         return ""
     s = s.replace("\r\n", "\n").replace("\r", "\n")
+    s = s.replace("\xa0", " ").replace("\u202f", " ")
     s = re.sub(r"[ \t]+", " ", s)
     s = re.sub(r"\n[ \t]+", "\n", s)
 
-    # Force newlines for markers explicitly requested
+    # Explicit markers requested by user
     s = re.sub(r"(?<!\n)\s*(▪)\s*", r"\n\1 ", s)
     s = re.sub(r"(?<!\n)\s*(\*\.)\s*", r"\n\1 ", s)
     s = re.sub(r"(?<!\n)\s*(\*)\s+(?=\S)", r"\n\1 ", s)
     s = re.sub(r"(?<!\n)\s*(---->|--->|-->|->)\s*", r"\n\1 ", s)
 
     # Enumerations like "1." / "2/" when followed by content
-    s = re.sub(r"(?<!\n)(?<!\d)(\d+\.)\s*(?=\S)", r"\n\1 ", s)
-    s = re.sub(r"(?<!\n)(?<!\d)(\d+/)\s*(?=\S)", r"\n\1 ", s)
+    s = re.sub(r"(?<!\n)(?:(?<=^)|(?<=[\s\(\[]))(\d+\.)\s*(?=[A-ZÉÈÊÀÂÎÔÙÛÇa-z])", r"\n\1 ", s)
+    s = re.sub(r"(?<!\n)(?:(?<=^)|(?<=[\s\(\[]))(\d+\s*/)\s*(?=[A-ZÉÈÊÀÂÎÔÙÛÇa-z])", r"\n\1 ", s)
 
     # Dash bullet variants (including Unicode dashes and compact forms)
-    s = re.sub(r"([\.:;])\s*[\-–—−]\s*(?=\S)", r"\1\n- ", s)
-    s = re.sub(r"(?<!\d)\s*[\-–—−]\s*(?=[A-ZÉÈÊÀÂÎÔÙÛÇa-z0-9])", r"\n- ", s)
+    dash_chars = r"[-‐‑‒–—−]"
+    s = re.sub(rf"([\.:;])\s*{dash_chars}\s*(?=\S)", r"\1\n- ", s)
+    s = re.sub(rf"(?<!\n)(?:(?<=^)|(?<=[\s\.:;])){dash_chars}\s*(?=\S)", r"\n- ", s)
 
     # Other bullet glyphs from copy/paste exports
     s = re.sub(r"\s*[•●◦‣◾◽◼◻·\uf0a7\u25aa\u25ab\u2022]\s*", r"\n▪ ", s)
