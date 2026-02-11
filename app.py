@@ -2155,7 +2155,12 @@ def render_cr(
         edf2 = edf2.loc[edf2["__done__"].notna()].copy()
         days_since_done = pd.to_datetime(ref_date) - pd.to_datetime(edf2["__done__"])
         edf2 = edf2.loc[(days_since_done.dt.days >= 0) & (days_since_done.dt.days <= 14)].copy()
-        edf2["__reminder__"] = edf2.apply(lambda r: reminder_level_at_done(r.get("__deadline__"), r.get("__done__")), axis=1)
+        deadline_vals = _series(edf2, "__deadline__", None)
+        done_vals = _series(edf2, "__done__", None)
+        edf2["__reminder__"] = [
+            reminder_level_at_done(deadline, done_date)
+            for deadline, done_date in zip(deadline_vals.tolist(), done_vals.tolist())
+        ]
         edf2 = _explode_areas(edf2)
         closed_recent_df = edf2
 
