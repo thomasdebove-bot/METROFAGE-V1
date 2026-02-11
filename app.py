@@ -3377,14 +3377,25 @@ body.constraint-off-topScale .topPage{{transform:none!important}}
 <body class="{'pdf' if print_mode else ''}">
   {actions_html}
   <div class="wrap">
+    <section class="page page--cover">
+      <div class="pageContent">
+        <div class="coverBlock">
+          {cover_html}
+          {top_html}
+        </div>
+      </div>
+      <div class="docFooter">
+        <div class="footLeft"></div>
+        <div class="footCenter">{("<img class='coverFooterMark' src='" + logo_eiffage_square_90 + "' alt='EIFFAGE' />") if logo_eiffage_square_90 else ""}</div>
+        <div class="footRight"><span class="footPageNumber"></span></div>
+      </div>
+    </section>
+
     <div class="reportPages">
-      <section class="page page--report page--cover">
+      <section class="page page--report">
         <div class="pageContent">
-          <div class="coverBlock">
-            {cover_html}
-            {top_html}
-          </div>
           <div class="reportTables">
+            {report_header_html}
             <div class="reportBlocks">
               {presence_block_html}
               {zones_html}
