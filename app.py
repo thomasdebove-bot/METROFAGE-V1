@@ -1775,7 +1775,7 @@ PAGINATION_JS = r"""
     return Number.isNaN(n) ? 0 : n;
   }
 
-  function calcAvailable(page){
+  function calcAvailable(page, includePresence){
     const pageContent = page.querySelector('.pageContent');
     const footer = page.querySelector('.docFooter');
     const header = page.querySelector('.reportHeader');
@@ -1783,7 +1783,11 @@ PAGINATION_JS = r"""
     if(!pageContent) return pageRect.height;
     const styles = window.getComputedStyle(pageContent);
     let available = pageRect.height - px(styles.paddingTop) - px(styles.paddingBottom);
-    if(footer){ available -= footer.getBoundingClientRect().height; }
+    const reserveFooter = !document.body.classList.contains('constraint-off-footerReserve');
+    const rootStyles = getComputedStyle(document.documentElement);
+    const reserveFactorRaw = parseFloat((rootStyles.getPropertyValue('--footer-reserve-factor') || '1').trim());
+    const reserveFactor = Number.isNaN(reserveFactorRaw) ? 1 : reserveFactorRaw;
+    if(reserveFooter && footer){ available -= (footer.getBoundingClientRect().height * reserveFactor); }
     if(header){ available -= header.getBoundingClientRect().height; }
     return available;
   }
@@ -1859,8 +1863,11 @@ PAGINATION_JS = r"""
       endIndex += 1;
       if(endIndex === startIndex + 1 && height > maxHeight){ break; }
     }
-    if(endIndex > startIndex && rows[endIndex - 1]?.classList.contains('sessionSubRow')){
-      endIndex -= 1;
+    const keepSessionHeaderWithNext = !document.body.classList.contains('constraint-off-keepSessionHeaderWithNext');
+    if(keepSessionHeaderWithNext && endIndex < total){
+      while(endIndex > startIndex + 1 && rows[endIndex - 1]?.classList.contains('sessionSubRow')){
+        endIndex -= 1;
+      }
     }
     if(endIndex === startIndex && rows[startIndex]?.classList.contains('sessionSubRow') && startIndex + 1 < total){
       endIndex = Math.min(startIndex + 2, total);
@@ -1902,7 +1909,7 @@ PAGINATION_JS = r"""
 
     let currentPage = firstPage;
     let currentBlocks = blocksContainer;
-    let available = calcAvailable(currentPage);
+    let available = calcAvailable(currentPage, true);
     const coverBlock = currentPage.querySelector('.coverBlock');
     let used = coverBlock ? (coverBlock.getBoundingClientRect().height || coverBlock.offsetHeight || 0) : 0;
     const template = document.getElementById('report-page-template');
@@ -1917,7 +1924,7 @@ PAGINATION_JS = r"""
             container.appendChild(clone);
             currentPage = clone;
             currentBlocks = clone.querySelector('.reportBlocks');
-            available = calcAvailable(currentPage);
+            available = calcAvailable(currentPage, false);
             used = 0;
           }
           const maxHeight = Math.max(available - used, splitData.titleHeight + splitData.tableOverhead);
@@ -1927,7 +1934,7 @@ PAGINATION_JS = r"""
             container.appendChild(clone);
             currentPage = clone;
             currentBlocks = clone.querySelector('.reportBlocks');
-            available = calcAvailable(currentPage);
+            available = calcAvailable(currentPage, false);
             used = 0;
           }
           currentBlocks.appendChild(chunk);
@@ -1942,7 +1949,7 @@ PAGINATION_JS = r"""
         container.appendChild(clone);
         currentPage = clone;
         currentBlocks = clone.querySelector('.reportBlocks');
-        available = calcAvailable(currentPage);
+        available = calcAvailable(currentPage, false);
         used = 0;
       }
       currentBlocks.appendChild(node);
@@ -2951,6 +2958,9 @@ body{{padding:14px 14px 14px 280px;}}
 .page:last-child{{break-after:auto;page-break-after:auto;}}
 .pageContent{{padding:10mm 8mm 34mm 8mm;}}
 .page--cover .pageContent{{padding:10mm 8mm 10mm 8mm;}}
+.pageContent--coverFlow{{display:flex;flex-direction:column;gap:0;}}
+.pageContent--coverFlow .coverBlock{{flex:0 0 66%;margin-bottom:0;}}
+.pageContent--coverFlow .reportTables{{margin-top:0;}}
 .muted{{color:var(--muted)}}
 .small{{font-size:12px}}
 .noPrint{{}}
@@ -3372,7 +3382,7 @@ body.constraint-off-topScale .topPage{{transform:none!important}}
   <div class="wrap">
     <div class="reportPages">
       <section class="page page--report page--cover">
-        <div class="pageContent">
+        <div class="pageContent pageContent--coverFlow">
           <div class="coverBlock">
             {cover_html}
             {top_html}
