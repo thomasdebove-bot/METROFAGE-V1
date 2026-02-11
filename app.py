@@ -405,6 +405,13 @@ def _split_words(value: str) -> set[str]:
     return {part for part in re.split(r"[^\w]+", raw) if part}
 
 
+def _is_mdz_project(project_title: str) -> bool:
+    value = (project_title or "").strip()
+    if not value:
+        return False
+    return "MDZ" in value.upper()
+
+
 def _logo_data_url(path: str) -> str:
     if not path:
         return ""
@@ -1899,8 +1906,11 @@ def render_home(project: Optional[str] = None, print_mode: bool = False) -> str:
     m = get_meetings().copy()
     m[M_COL_PROJECT_TITLE] = m[M_COL_PROJECT_TITLE].fillna("").astype(str).str.strip()
     m = m.loc[m[M_COL_PROJECT_TITLE] != ""].copy()
+    m = m.loc[m[M_COL_PROJECT_TITLE].apply(_is_mdz_project)].copy()
 
     projects = sorted(m[M_COL_PROJECT_TITLE].unique().tolist(), key=lambda x: x.lower())
+    if project and not _is_mdz_project(project):
+        project = None
     if project:
         m = m.loc[m[M_COL_PROJECT_TITLE] == project].copy()
 
@@ -2005,12 +2015,10 @@ function onProjectChange(){{
 
 function openCR(){{
   const meetingEl = document.getElementById('meeting');
-  const projectEl = document.getElementById('project');
   if(!meetingEl){{ alert("Champ réunion introuvable"); return; }}
   const mid = meetingEl.value || "";
   if(!mid){{ alert("Choisis une réunion."); return; }}
-  const p = projectEl ? (projectEl.value || "") : "";
-  const url = `/cr?meeting_id=${{encodeURIComponent(mid)}}&project=${{encodeURIComponent(p)}}&print=1`;
+  const url = `/cr?meeting_id=${{encodeURIComponent(mid)}}&print=1`;
   window.location.href = url;
 }}
 </script>
@@ -3162,6 +3170,13 @@ def cr(
         )
     except MissingDataError as err:
         return HTMLResponse(render_missing_data_page(err), status_code=503)
+    except Exception as err:
+        return HTMLResponse(
+            "<pre style='white-space:pre-wrap;font-family:ui-monospace,monospace;padding:16px'>"
+            + _escape(f"Erreur lors de l'ouverture du compte-rendu: {err}")
+            + "</pre>",
+            status_code=500,
+        )
 
 
 @app.get("/health", response_class=JSONResponse)
