@@ -1779,7 +1779,6 @@ PAGINATION_JS = r"""
     const pageContent = page.querySelector('.pageContent');
     const footer = page.querySelector('.docFooter');
     const header = page.querySelector('.reportHeader');
-    const presence = page.querySelector('.presenceWrap');
     const pageRect = page.getBoundingClientRect();
     if(!pageContent) return pageRect.height;
     const styles = window.getComputedStyle(pageContent);
@@ -1790,7 +1789,6 @@ PAGINATION_JS = r"""
     const reserveFactor = Number.isNaN(reserveFactorRaw) ? 1 : reserveFactorRaw;
     if(reserveFooter && footer){ available -= (footer.getBoundingClientRect().height * reserveFactor); }
     if(header){ available -= header.getBoundingClientRect().height; }
-    if(includePresence && presence){ available -= presence.getBoundingClientRect().height; }
     return available;
   }
 
