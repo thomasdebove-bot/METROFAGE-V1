@@ -563,9 +563,12 @@ def _format_entry_text_html(v) -> str:
     s = s.replace("\r\n", "\n").replace("\r", "\n")
     s = re.sub(r"[ \t]+", " ", s)
     s = re.sub(r"\n[ \t]+", "\n", s)
-    s = re.sub(r"\s*(•|●|◦|▪|‣|\*)\s*", r"\n▪ ", s)
-    s = re.sub(r"([\.:;])\s*-\s+(?=\S)", r"\1\n- ", s)
-    s = re.sub(r"\s+-\s+(?=[A-ZÉÈÊÀÂÎÔÙÛÇ0-9])", r"\n- ", s)
+    # bullets coming from various exports (including Word/Wingdings glyphs)
+    s = re.sub(r"\s*[•●◦▪‣◾◽◼◻·\uf0a7\u25aa\u25ab\u2022]\s*", r"\n▪ ", s)
+    # dash bullets often appear after punctuation with or without spaces (e.g. ".- Item" / ": -Item")
+    s = re.sub(r"([\.:;])\s*-\s*(?=[A-ZÉÈÊÀÂÎÔÙÛÇ0-9])", r"\1\n- ", s)
+    # dash bullets anywhere, but avoid numeric ranges/dates like 05-02
+    s = re.sub(r"(?<!\d)\s*-\s*(?=[A-ZÉÈÊÀÂÎÔÙÛÇa-z0-9])", r"\n- ", s)
     s = re.sub(r"\n{3,}", "\n\n", s)
     return _escape(s.strip()).replace("\n", "<br>")
 
