@@ -574,9 +574,9 @@ def _format_entry_text_html(v) -> str:
     s = re.sub(r"(?<!\n)(?<!\d)(\d+\.)\s*(?=\S)", r"\n\1 ", s)
     s = re.sub(r"(?<!\n)(?<!\d)(\d+/)\s*(?=\S)", r"\n\1 ", s)
 
-    # Dash bullet variants (including ".- Item" / ": -Item")
-    s = re.sub(r"([\.:;])\s*-\s*(?=\S)", r"\1\n- ", s)
-    s = re.sub(r"(?<!\d)\s*-\s*(?=[A-ZÉÈÊÀÂÎÔÙÛÇa-z0-9])", r"\n- ", s)
+    # Dash bullet variants (including Unicode dashes and compact forms)
+    s = re.sub(r"([\.:;])\s*[\-–—−]\s*(?=\S)", r"\1\n- ", s)
+    s = re.sub(r"(?<!\d)\s*[\-–—−]\s*(?=[A-ZÉÈÊÀÂÎÔÙÛÇa-z0-9])", r"\n- ", s)
 
     # Other bullet glyphs from copy/paste exports
     s = re.sub(r"\s*[•●◦‣◾◽◼◻·\uf0a7\u25aa\u25ab\u2022]\s*", r"\n▪ ", s)
