@@ -1745,22 +1745,16 @@ PAGINATION_JS = r"""
     return Number.isNaN(n) ? 0 : n;
   }
 
-  function calcAvailable(page, includePresence){
+  function calcAvailable(page){
     const pageContent = page.querySelector('.pageContent');
     const footer = page.querySelector('.docFooter');
     const header = page.querySelector('.reportHeader');
-    const presence = page.querySelector('.presenceWrap');
     const pageRect = page.getBoundingClientRect();
     if(!pageContent) return pageRect.height;
     const styles = window.getComputedStyle(pageContent);
     let available = pageRect.height - px(styles.paddingTop) - px(styles.paddingBottom);
-    const reserveFooter = !document.body.classList.contains('constraint-off-footerReserve');
-    const rootStyles = getComputedStyle(document.documentElement);
-    const reserveFactorRaw = parseFloat((rootStyles.getPropertyValue('--footer-reserve-factor') || '1').trim());
-    const reserveFactor = Number.isNaN(reserveFactorRaw) ? 1 : reserveFactorRaw;
-    if(reserveFooter && footer){ available -= (footer.getBoundingClientRect().height * reserveFactor); }
+    if(footer){ available -= footer.getBoundingClientRect().height; }
     if(header){ available -= header.getBoundingClientRect().height; }
-    if(includePresence && presence){ available -= presence.getBoundingClientRect().height; }
     return available;
   }
 
@@ -1805,6 +1799,17 @@ PAGINATION_JS = r"""
     return {rows, rowHeights, tableOverhead, titleHeight};
   }
 
+  function getTableSplitData(block, tableSelector){
+    const table = block.querySelector(tableSelector);
+    const tbody = table?.querySelector('tbody');
+    const rows = tbody ? Array.from(tbody.children) : [];
+    const rowHeights = rows.map(row => row.getBoundingClientRect().height || row.offsetHeight || 0);
+    const tableRect = table?.getBoundingClientRect().height || table?.offsetHeight || 0;
+    const rowsSum = rowHeights.reduce((sum, h) => sum + h, 0);
+    const tableOverhead = Math.max(0, tableRect - rowsSum);
+    return {rows, rowHeights, tableOverhead, titleHeight: 0};
+  }
+
   function cloneZoneShell(zone){
     const clone = zone.cloneNode(true);
     const tbody = clone.querySelector('tbody');
@@ -1824,11 +1829,8 @@ PAGINATION_JS = r"""
       endIndex += 1;
       if(endIndex === startIndex + 1 && height > maxHeight){ break; }
     }
-    const keepSessionHeaderWithNext = !document.body.classList.contains('constraint-off-keepSessionHeaderWithNext');
-    if(keepSessionHeaderWithNext && endIndex < total){
-      while(endIndex > startIndex + 1 && rows[endIndex - 1]?.classList.contains('sessionSubRow')){
-        endIndex -= 1;
-      }
+    if(endIndex > startIndex && rows[endIndex - 1]?.classList.contains('sessionSubRow')){
+      endIndex -= 1;
     }
     if(endIndex === startIndex && rows[startIndex]?.classList.contains('sessionSubRow') && startIndex + 1 < total){
       endIndex = Math.min(startIndex + 2, total);
@@ -1845,16 +1847,6 @@ PAGINATION_JS = r"""
     return {chunk, nextIndex: endIndex, height};
   }
 
-  function updatePageNumbers(){
-    const pages = Array.from(document.querySelectorAll('.wrap .page'));
-    const total = pages.length;
-    pages.forEach((page, idx) => {
-      const num = page.querySelector('.pageNum');
-      if(!num) return;
-      num.textContent = idx === 0 ? '' : `${idx + 1}/${total}`;
-    });
-  }
-
   function paginate(){
     const container = document.querySelector('.reportPages');
     const firstPage = container?.querySelector('.page--report');
@@ -1862,19 +1854,27 @@ PAGINATION_JS = r"""
     const blocksContainer = firstPage.querySelector('.reportBlocks');
     if(!blocksContainer) return;
     mergeZoneBlocks(container);
-    const blocks = Array.from(container.querySelectorAll('.reportBlock')).map(block => ({
-      node: block,
-      height: block.getBoundingClientRect().height || block.offsetHeight || 0,
-      splitData: block.classList.contains('zoneBlock') ? getZoneSplitData(block) : null,
-    }));
+    const blocks = Array.from(container.querySelectorAll('.reportBlock')).map(block => {
+      const splitData = block.classList.contains('zoneBlock')
+        ? getZoneSplitData(block)
+        : (block.classList.contains('presenceBlock')
+            ? getTableSplitData(block, 'table.presenceUsersTable')
+            : null);
+      return {
+        node: block,
+        height: block.getBoundingClientRect().height || block.offsetHeight || 0,
+        splitData,
+      };
+    });
 
     blocks.forEach(({node}) => node.remove());
     clearExtraPages(container);
 
     let currentPage = firstPage;
     let currentBlocks = blocksContainer;
-    let available = calcAvailable(currentPage, true);
-    let used = 0;
+    let available = calcAvailable(currentPage);
+    const coverBlock = currentPage.querySelector('.coverBlock');
+    let used = coverBlock ? (coverBlock.getBoundingClientRect().height || coverBlock.offsetHeight || 0) : 0;
     const template = document.getElementById('report-page-template');
 
     blocks.forEach(({node, height, splitData}) => {
@@ -1887,7 +1887,7 @@ PAGINATION_JS = r"""
             container.appendChild(clone);
             currentPage = clone;
             currentBlocks = clone.querySelector('.reportBlocks');
-            available = calcAvailable(currentPage, false);
+            available = calcAvailable(currentPage);
             used = 0;
           }
           const maxHeight = Math.max(available - used, splitData.titleHeight + splitData.tableOverhead);
@@ -1897,7 +1897,7 @@ PAGINATION_JS = r"""
             container.appendChild(clone);
             currentPage = clone;
             currentBlocks = clone.querySelector('.reportBlocks');
-            available = calcAvailable(currentPage, false);
+            available = calcAvailable(currentPage);
             used = 0;
           }
           currentBlocks.appendChild(chunk);
@@ -1912,15 +1912,24 @@ PAGINATION_JS = r"""
         container.appendChild(clone);
         currentPage = clone;
         currentBlocks = clone.querySelector('.reportBlocks');
-        available = calcAvailable(currentPage, false);
+        available = calcAvailable(currentPage);
         used = 0;
       }
       currentBlocks.appendChild(node);
       const actualHeight = node.getBoundingClientRect().height || height;
       used += actualHeight;
     });
-
     updatePageNumbers();
+  }
+
+  function updatePageNumbers(){
+    const pages = Array.from(document.querySelectorAll('.page'));
+    const total = pages.length || 1;
+    pages.forEach((page, index) => {
+      page.querySelectorAll('.footPageNumber').forEach(el => {
+        el.textContent = `Page ${index + 1}/${total}`;
+      });
+    });
   }
 
   window.repaginateReport = paginate;
@@ -2478,6 +2487,12 @@ def render_cr(
       </div>
     """
 
+    presence_block_html = f"""
+      <div class="presenceBlock reportBlock">
+        {presence_html}
+      </div>
+    """
+
     actions_html = f"""
       <div class="actions noPrint">
         <button class="btn" type="button" onclick="window.print()">Imprimer / PDF</button>
@@ -2881,7 +2896,7 @@ body{{padding:14px 14px 14px 280px;}}
 .page{{width:210mm;height:297mm;min-height:297mm;position:relative;background:#fff;overflow:visible;break-after:page;page-break-after:always;}}
 .page:last-child{{break-after:auto;page-break-after:auto;}}
 .pageContent{{padding:10mm 8mm 34mm 8mm;}}
-.page--cover .pageContent{{padding-top:0;}}
+.page--cover .pageContent{{padding:10mm 8mm 10mm 8mm;}}
 .muted{{color:var(--muted)}}
 .small{{font-size:12px}}
 .noPrint{{}}
@@ -2969,12 +2984,12 @@ body.printPreviewMode .noPrintRow{{display:none!important}}
 .zoneTitle{{
   display:flex;align-items:center;gap:10px;
   padding:6px 10px;border:1px solid var(--border);border-bottom:none;
-  background:#f59e0b;color:#ffffff;font-weight:900;font-size:11px;text-transform:uppercase;
+  background:var(--brand-red);color:#ffffff;font-weight:900;font-size:11px;text-transform:uppercase;
 }}
 .zoneTitle button{{margin-left:auto}}
 .zoneTools{{display:flex;align-items:center;gap:6px;margin-left:auto}}
 .zoneBtn{{border:1px solid #ffffff;background:#fff;border-radius:8px;padding:4px 8px;font-weight:800;cursor:pointer}}
-.zoneBlock.highlight{{box-shadow:0 0 0 2px #f59e0b inset; background:linear-gradient(180deg,#fff7ed,#fff)}}
+.zoneBlock.highlight{{box-shadow:0 0 0 2px var(--brand-red) inset; background:linear-gradient(180deg,#fff7ed,#fff)}}
 .zoneBlock.pageBreakBefore{{page-break-before:always}}
 .u-page-break{{break-before:page;page-break-before:always;}}
 .u-avoid-break{{break-inside:avoid;page-break-inside:avoid;}}
@@ -3031,8 +3046,8 @@ body.printPreviewMode .noPrintRow{{display:none!important}}
 
 /* Bleu = sujets réunion */
 .newItem{{border-color: var(--blueBorder);background: linear-gradient(180deg, #ffffff, var(--blueSoft));box-shadow: 0 0 0 2px rgba(59,130,246,.05);}}
-.reminderItem{{border-left:4px solid #ef4444;}}
-.followItem{{border-left:4px solid #f59e0b;}}
+.reminderItem{{border-left:4px solid var(--brand-red);}}
+.followItem{{border-left:4px solid var(--brand-red);}}
 
 /* KPI list */
 .kpiList{{display:flex;flex-direction:column;gap:8px}}
@@ -3067,7 +3082,7 @@ body.constraint-off-topScale .topPage{{transform:none!important}}
 .crTable th, .crTable td{{border:1px solid var(--border);padding:6px 7px;vertical-align:top;page-break-inside:auto;break-inside:auto;}}
 .crTable tr{{page-break-inside:auto;break-inside:auto;}}
 .annexTable tr{{page-break-inside:auto;break-inside:auto;}}
-.crTable th{{background:#1f4e4f;color:#fff;text-align:center;font-weight:900;font-size:11px;line-height:1.2;white-space:nowrap}}
+.crTable th{{background:#e5e7eb;color:#111;text-align:center;font-weight:900;font-size:11px;line-height:1.2;white-space:nowrap}}
 .crTable td{{font-size:11px;line-height:1.24;word-break:normal;overflow-wrap:break-word;hyphens:none}}
 .crTable td.colDate, .crTable th.colDate{{padding:6px 4px}}
 
@@ -3135,9 +3150,9 @@ body.constraint-off-topScale .topPage{{transform:none!important}}
 .annexTable td:first-child{{width:90px;color:#2563eb;font-weight:900}}
 .annexTable td:last-child{{text-align:right}}
 .annexTable td:last-child .annexLink{{display:inline-block;text-align:right}}
-.annexTable th{{font-weight:900;background:#1f4e4f;color:#fff}}
-.annexTable .annexLink{{color:#f97316;font-weight:800;text-decoration:underline;text-underline-offset:3px;cursor:pointer}}
-.annexTable .annexLink::after{{content:" ↗";font-weight:900;color:#f97316}}
+.annexTable th{{font-weight:900;background:var(--brand-red);color:#fff}}
+.annexTable .annexLink{{color:var(--brand-red);font-weight:800;text-decoration:underline;text-underline-offset:3px;cursor:pointer}}
+.annexTable .annexLink::after{{content:" ↗";font-weight:900;color:var(--brand-red)}}
 .annexTable tr:last-child td{{border-bottom:none}}
 .coverTable{{margin:10px 0 12px 0}}
 .coverTable td:first-child{{width:260px;color:#0b1220;font-weight:900}}
@@ -3170,14 +3185,25 @@ body.constraint-off-topScale .topPage{{transform:none!important}}
 .footLeft,.footCenter,.footRight{{position:absolute;z-index:2}}
 .footLeft{{left:0}}
 .footCenter{{left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:11px;font-weight:700;color:#111}}
-.footRight{{right:10mm;width:120px;display:flex;justify-content:flex-end}}
-.pageNum{{font-family:'Arial Nova Cond Light','Arial Narrow',Arial,sans-serif;font-size:10px;font-weight:700;color:#111;line-height:1;letter-spacing:.2px}}
+.footRight{{right:10mm;font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:9px;font-weight:700;color:#111;min-width:70px;text-align:right}}
+.footPageNumber{{display:inline-block}}
 .tempoLegal{{font-family:"Arial Nova Cond Light","Arial Narrow",Arial,sans-serif;font-size:10px;line-height:1.3;color:#6b7280;font-weight:600}}
 .footImg{{display:block;max-height:32px;width:auto}}
 .footMark{{max-height:16px}}
 .footRythme{{max-height:28px;margin:6px auto 0 auto}}
 .footTempo{{max-height:28px;margin-left:auto}}
-@media print{{body{{padding:0}} .actions,.rangePanel,.constraintsPanel{{display:none!important}} .page{{width:210mm;min-height:297mm;margin:0;box-shadow:none;break-after:page;page-break-after:always;}} .page:last-child{{break-after:auto;page-break-after:auto;}} .presenceGrip{{display:none!important}} .presenceUsersTable thead{{display:table-header-group}} .presenceUsersTable tr{{break-inside:avoid;page-break-inside:avoid}}}}
+@media print{{
+  body{{padding:0}}
+  .actions,.rangePanel,.constraintsPanel{{display:none!important}}
+  .page{{width:210mm;min-height:297mm;height:auto;margin:0;box-shadow:none;break-after:auto;page-break-after:auto;}}
+  .page--report .pageContent{{padding-top:16mm;padding-bottom:16mm;}}
+  .page--cover .pageContent{{padding:10mm 8mm 20mm 8mm;}}
+  .reportHeader{{position:absolute;top:0;left:0;right:0;background:#fff;padding:4mm 8mm 2mm 8mm;z-index:20;}}
+  .docFooter{{position:absolute;bottom:0;left:0;right:0;}}
+  .presenceGrip{{display:none!important}}
+  .presenceUsersTable thead{{display:table-header-group}}
+  .presenceUsersTable tr{{break-inside:avoid;page-break-inside:avoid}}
+}}
 
 {EDITOR_MEMO_MODAL_CSS}
 {QUALITY_MODAL_CSS}
@@ -3288,25 +3314,16 @@ body.constraint-off-topScale .topPage{{transform:none!important}}
 <body class="{'pdf' if print_mode else ''}">
   {actions_html}
   <div class="wrap">
-    <section class="page page--cover">
-      <div class="pageContent">
-        {cover_html}
-        {top_html}
-      </div>
-      <div class="docFooter">
-        <div class="footLeft"></div>
-        <div class="footCenter">{("<img class='coverFooterMark' src='" + logo_eiffage_square_90 + "' alt='EIFFAGE' />") if logo_eiffage_square_90 else ""}</div>
-        <div class="footRight"><span class="pageNum"></span></div>
-      </div>
-    </section>
-
     <div class="reportPages">
-      <section class="page page--report">
+      <section class="page page--report page--cover">
         <div class="pageContent">
+          <div class="coverBlock">
+            {cover_html}
+            {top_html}
+          </div>
           <div class="reportTables">
-            {report_header_html}
-            {presence_html}
             <div class="reportBlocks">
+              {presence_block_html}
               {zones_html}
               {annexes_html}
               {report_note_html}
@@ -3316,7 +3333,7 @@ body.constraint-off-topScale .topPage{{transform:none!important}}
         <div class="docFooter">
           <div class="footLeft"></div>
           <div class="footCenter">{("<img class='coverFooterMark' src='" + logo_eiffage_square_90 + "' alt='EIFFAGE' />") if logo_eiffage_square_90 else ""}</div>
-          <div class="footRight"><span class="pageNum"></span></div>
+          <div class="footRight"><span class="footPageNumber"></span></div>
         </div>
       </section>
     </div>
@@ -3333,7 +3350,7 @@ body.constraint-off-topScale .topPage{{transform:none!important}}
       <div class="docFooter">
         <div class="footLeft"></div>
         <div class="footCenter">{("<img class='coverFooterMark' src='" + logo_eiffage_square_90 + "' alt='EIFFAGE' />") if logo_eiffage_square_90 else ""}</div>
-        <div class="footRight"><span class="pageNum"></span></div>
+        <div class="footRight"><span class="footPageNumber"></span></div>
       </div>
     </section>
   </template>
