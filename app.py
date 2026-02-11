@@ -2876,6 +2876,7 @@ def render_cr(
   --soft:#f8fafc;
   --shadow:0 10px 30px rgba(2,6,23,.06);
   --accent:#ff0000;
+  --brand-red:#ff0000;
   --blueSoft:#eff6ff;
   --blueBorder:#bfdbfe;
   --col-type:7%;
