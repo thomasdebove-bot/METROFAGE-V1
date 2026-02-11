@@ -3179,10 +3179,6 @@ body.constraint-off-topScale .topPage{{transform:none!important}}
 .presenceUsersTable .presenceFlag{{min-height:18px}}
 .presenceName{{display:inline-flex;align-items:center;gap:6px}}
 .presenceUsersTable th{{position:relative;padding-right:18px}}
-.presenceUsersTable thead th{{border-right:1px solid rgba(255,255,255,.20)}}
-.presenceUsersTable thead th:last-child{{border-right:none}}
-.presenceUsersTable tbody td{{border-right:1px solid rgba(220,38,38,.28)}}
-.presenceUsersTable tbody td:last-child{{border-right:none}}
 .presenceGrip{{position:absolute;top:0;right:-6px;width:12px;height:100%;cursor:col-resize}}
 .presenceGrip::after{{content:"";position:absolute;top:3px;bottom:3px;left:5px;width:2px;background:var(--brand-red);border-radius:2px;opacity:.9}}
 .presenceUsersTable th:hover .presenceGrip::after{{background:#b91c1c}}
