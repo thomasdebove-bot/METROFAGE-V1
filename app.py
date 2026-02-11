@@ -3178,9 +3178,13 @@ body.constraint-off-topScale .topPage{{transform:none!important}}
 .presenceUsersTable .presenceFlag{{min-height:18px}}
 .presenceName{{display:inline-flex;align-items:center;gap:6px}}
 .presenceUsersTable th{{position:relative;padding-right:18px}}
+.presenceUsersTable thead th{{border-right:1px solid rgba(255,255,255,.20)}}
+.presenceUsersTable thead th:last-child{{border-right:none}}
+.presenceUsersTable tbody td{{border-right:1px solid rgba(220,38,38,.28)}}
+.presenceUsersTable tbody td:last-child{{border-right:none}}
 .presenceGrip{{position:absolute;top:0;right:-6px;width:12px;height:100%;cursor:col-resize}}
-.presenceGrip::after{{content:"";position:absolute;top:3px;bottom:3px;left:5px;width:2px;background:#1d4ed8;border-radius:2px;opacity:1}}
-.presenceUsersTable th:hover .presenceGrip::after{{background:#0f172a}}
+.presenceGrip::after{{content:"";position:absolute;top:3px;bottom:3px;left:5px;width:2px;background:var(--brand-red);border-radius:2px;opacity:.9}}
+.presenceUsersTable th:hover .presenceGrip::after{{background:#b91c1c}}
 .docFooter{{position:absolute;left:0;right:0;bottom:0;height:20mm;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3mm 10mm;border-top:2px solid var(--brand-red);background:#fff;overflow:hidden;width:100%;box-sizing:border-box}}
 .footLeft,.footCenter,.footRight{{position:absolute;z-index:2}}
 .footLeft{{left:0}}
