@@ -563,9 +563,9 @@ def _format_entry_text_html(v) -> str:
     s = s.replace("\r\n", "\n").replace("\r", "\n")
     s = re.sub(r"[ \t]+", " ", s)
     s = re.sub(r"\n[ \t]+", "\n", s)
-    s = re.sub(r"(?<!\n)\s*(•|●|◦|▪|‣|\*)\s+", r"\n\1 ", s)
-    s = re.sub(r"\s+▪\s*", r"\n▪ ", s)
-    s = re.sub(r"\s+-\s+(?=\S)", r"\n- ", s)
+    s = re.sub(r"\s*(•|●|◦|▪|‣|\*)\s*", r"\n▪ ", s)
+    s = re.sub(r"([\.:;])\s*-\s+(?=\S)", r"\1\n- ", s)
+    s = re.sub(r"\s+-\s+(?=[A-ZÉÈÊÀÂÎÔÙÛÇ0-9])", r"\n- ", s)
     s = re.sub(r"\n{3,}", "\n\n", s)
     return _escape(s.strip()).replace("\n", "<br>")
 
@@ -2131,7 +2131,7 @@ select{{width:100%;padding:12px 12px;border-radius:12px;border:1px solid var(--b
         {left_logo}
         <div class="brandText">
           <div style="font-weight:1000">Compte-rendu • Réunion de synthèse</div>
-          <div class="tag">Application EIFFAGE</div>
+          <div class="tag">Application TEMPO</div>
         </div>
         {right_logo}
       </div>
