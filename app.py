@@ -577,8 +577,9 @@ def _format_entry_text_html(v) -> str:
 
     # Dash bullet variants (including Unicode dashes and compact forms)
     dash_chars = r"[-‐‑‒–—−]"
-    s = re.sub(rf"([\.:;])\s*{dash_chars}\s*(?=\S)", r"\1\n- ", s)
-    s = re.sub(rf"(?<!\n)(?:(?<=^)|(?<=[\s\.:;])){dash_chars}\s*(?=\S)", r"\n- ", s)
+    s = re.sub(rf"([\.:;?!])\s*{dash_chars}\s*(?=\S)", r"\1\n- ", s)
+    s = re.sub(rf"(?<!\n)(?:(?<=^)|(?<=[\s\.:;?!])){dash_chars}\s*(?=\S)", r"\n- ", s)
+    s = re.sub(rf"(?<=[A-Z0-9\)\]]){dash_chars}\s*(?=[A-ZÉÈÊÀÂÎÔÙÛÇa-z0-9])", r"\n- ", s)
 
     # Other bullet glyphs from copy/paste exports
     s = re.sub(r"\s*[•●◦‣◾◽◼◻·\uf0a7\u25aa\u25ab\u2022]\s*", r"\n▪ ", s)
