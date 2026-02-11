@@ -27,6 +27,7 @@ import os
 import re
 import urllib.parse
 import urllib.request
+import unicodedata
 from datetime import date, timedelta
 from typing import Dict, List, Optional, Tuple
 
@@ -451,6 +452,16 @@ def _is_mdz_project(project_title: str) -> bool:
     return "MDZ" in value.upper()
 
 
+
+
+def _zone_key(value: str) -> str:
+    raw = (value or "").strip().lower()
+    if not raw:
+        return ""
+    normalized = unicodedata.normalize("NFD", raw)
+    normalized = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
+    return re.sub(r"\s+", " ", normalized)
+
 def _logo_data_url(path: str) -> str:
     if not path:
         return ""
@@ -553,7 +564,8 @@ def _format_entry_text_html(v) -> str:
     s = re.sub(r"[ \t]+", " ", s)
     s = re.sub(r"\n[ \t]+", "\n", s)
     s = re.sub(r"(?<!\n)\s*(•|●|◦|▪|‣|\*)\s+", r"\n\1 ", s)
-    s = re.sub(r"(?<!\n)(?<!\w)-\s+(?=\S)", r"\n- ", s)
+    s = re.sub(r"\s+▪\s*", r"\n▪ ", s)
+    s = re.sub(r"\s+-\s+(?=\S)", r"\n- ", s)
     s = re.sub(r"\n{3,}", "\n\n", s)
     return _escape(s.strip()).replace("\n", "<br>")
 
@@ -2691,12 +2703,12 @@ def render_cr(
             return d, f"En séance du {d.strftime('%d/%m/%Y')} :"
         return None, "Hors séance :"
 
-    def render_zone_table(area_name: str, rows_html: str) -> str:
+    def render_zone_table(area_name: str, rows_html: str, extra_class: str = "") -> str:
         if not rows_html.strip():
             return ""
         zt = _escape(area_name)
         return f"""
-        <div class="zoneBlock reportBlock" data-zone-id="{zt}">
+        <div class="zoneBlock reportBlock {_escape(extra_class)}" data-zone-id="{zt}">
           <div class="zoneTitle">
             <span>{zt}</span>
             <div class="zoneTools noPrint">
@@ -2741,6 +2753,27 @@ def render_cr(
         f"En séance du {(meet_date or ref_date).strftime('%d/%m/%Y')} :" if (meet_date or ref_date) else ""
     )
 
+    fixed_zone_order = ["ordre du jour", "generalite"]
+    fixed_zone_names: Dict[str, str] = {}
+    remaining_areas: List[Tuple[str, pd.DataFrame]] = []
+    for area_name, g in areas:
+        key = _zone_key(area_name)
+        if key.startswith("ordre du jour"):
+            fixed_zone_names["ordre du jour"] = area_name
+        elif key.startswith("generalite") or key == "general":
+            fixed_zone_names["generalite"] = area_name
+        else:
+            remaining_areas.append((area_name, g))
+    ordered_areas: List[Tuple[str, pd.DataFrame]] = []
+    for fk in fixed_zone_order:
+        name = fixed_zone_names.get(fk)
+        if not name:
+            continue
+        match = next(((an, gg) for an, gg in areas if an == name), None)
+        if match:
+            ordered_areas.append(match)
+    ordered_areas.extend(remaining_areas)
+
     def _entry_id_value(r) -> str:
         return str(r.get(E_COL_ID, "")).strip()
 
@@ -2748,7 +2781,7 @@ def render_cr(
         rid = _entry_id_value(r)
         return bool(rid and rid in closed_recent_ids)
 
-    for area_name, g in areas:
+    for area_name, g in ordered_areas:
         grouped_rows: List[Tuple[Optional[date], str, str]] = []
         seen_entry_ids: set[str] = set()
 
@@ -2857,7 +2890,9 @@ def render_cr(
                 current_label = label
             rows_parts.append(row_html)
 
-        zone_table_html = render_zone_table(area_name, "\n".join(rows_parts))
+        zkey = _zone_key(area_name)
+        zone_class = "zone-black" if (zkey.startswith("ordre du jour") or zkey.startswith("generalite") or zkey == "general") else ""
+        zone_table_html = render_zone_table(area_name, "\n".join(rows_parts), extra_class=zone_class)
         if zone_table_html:
             zones_html_parts.append(zone_table_html)
 
@@ -2991,6 +3026,8 @@ body.printPreviewMode .noPrintRow{{display:none!important}}
 .zoneTools{{display:flex;align-items:center;gap:6px;margin-left:auto}}
 .zoneBtn{{border:1px solid #ffffff;background:#fff;border-radius:8px;padding:4px 8px;font-weight:800;cursor:pointer}}
 .zoneBlock.highlight{{box-shadow:0 0 0 2px var(--brand-red) inset; background:linear-gradient(180deg,#fff7ed,#fff)}}
+.zoneBlock.zone-black .zoneTitle{{background:#111;color:#fff}}
+.zoneBlock.zone-black .zoneBtn{{border-color:#111;color:#111;background:#fff}}
 .zoneBlock.pageBreakBefore{{page-break-before:always}}
 .u-page-break{{break-before:page;page-break-before:always;}}
 .u-avoid-break{{break-inside:avoid;page-break-inside:avoid;}}
